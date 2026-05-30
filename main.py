@@ -1,6 +1,7 @@
 import sys
 import pygame
 import time
+import random
 
 # Инициализация Pygame
 pygame.init()
@@ -250,7 +251,7 @@ player = Player()
 action_log = []
 
 objects = [
-    # Центральный район (0)
+    # Центральный район (0) - 5 людей
     GameObject(150, 200, 100, 80, RED, "shop", "Магазин продуктов", 0, 
                ["Вы купили продукты (-100 руб, +20 сытости)", "Недостаточно денег!"]),
     GameObject(600, 150, 100, 80, PURPLE, "shop", "Аптека", 0,
@@ -263,8 +264,10 @@ objects = [
                ["Таксист предлагает работу (+15 руб)", "Таксист уже уехал"]),
     GameObject(700, 380, 30, 40, PINK, "person", "Турист", 0,
                ["Турист дал чаевые (+10 руб)", "Турист не говорит по-русски"]),
+    GameObject(450, 380, 30, 40, RED, "person", "Хулиган", 0,
+               ["Хулиган отнял деньги!", "Хулиган ушёл"]),
     
-    # Жилой район (1)
+    # Жилой район (1) - 5 людей
     GameObject(100, 200, 120, 100, BEIGE, "building", "Многоквартирный дом", 1,
                ["Вы зашли домой и отдохнули (+10 здоровья)", "Дом закрыт"]),
     GameObject(300, 180, 100, 90, BEIGE, "building", "Кафе", 1,
@@ -277,8 +280,10 @@ objects = [
                ["Курьер поделился едой (+10 сытости)", "Курьер опаздывает"]),
     GameObject(200, 320, 100, 85, ORANGE, "building", "Пекарня", 1,
                ["Свежий хлеб (+15 сытости, -20 руб)", "Пекарня закрыта"]),
+    GameObject(380, 400, 30, 40, RED, "person", "Грабитель", 1,
+               ["Грабитель отнял деньги!", "Грабитель скрылся"]),
     
-    # Промышленная зона (2)
+    # Промышленная зона (2) - 5 людей
     GameObject(150, 180, 130, 110, DARK_GRAY, "building", "Завод", 2,
                ["Вы поработали на заводе (+25 руб, -5 здоровья)", "Работы нет"]),
     GameObject(400, 200, 100, 85, GRAY, "building", "Склад", 2,
@@ -291,8 +296,10 @@ objects = [
                ["Инженер заплатил за консультацию (+20 руб)", "Инженер занят"]),
     GameObject(500, 280, 110, 90, BROWN, "building", "Гараж", 2,
                ["Подработка механиком (+18 руб)", "Нет заказов"]),
+    GameObject(250, 300, 30, 40, RED, "person", "Бандит", 2,
+               ["Бандит отнял деньги!", "Бандит ушёл"]),
     
-    # Парковая зона (3)
+    # Парковая зона (3) - 5 людей
     GameObject(50, 150, 200, 180, GREEN, "park", "Городской парк", 3,
                ["Вы отдохнули в парке (+5 здоровья, +5 сытости)", "Парк на ремонте"]),
     GameObject(350, 200, 30, 40, LIME, "person", "Спортсмен", 3,
@@ -307,6 +314,8 @@ objects = [
                ["Прогулка на велосипеде (+10 здоровья, -15 руб)", "Нет велосипедов"]),
     GameObject(600, 180, 30, 40, YELLOW, "person", "Фотокорреспондент", 3,
                ["Вас сфотографировали (+5 руб)", "Камера разряжена"]),
+    GameObject(180, 350, 30, 40, RED, "person", "Карманник", 3,
+               ["Карманник отнял деньги!", "Карманник исчез"]),
 ]
 
 
@@ -455,6 +464,30 @@ def interact_with_object(obj):
             game_message = obj.interaction_text[0]
             action_log.append((obj.interaction_text[0], current_time))
             action_performed = True
+        elif obj.name == "Хулиган":
+            stolen = random.randint(5, 30)
+            player_money = max(0, player_money - stolen)
+            game_message = obj.interaction_text[0]
+            action_log.append((f"{obj.interaction_text[0]} (-{stolen} руб)", current_time))
+            action_performed = True
+        elif obj.name == "Грабитель":
+            stolen = random.randint(5, 30)
+            player_money = max(0, player_money - stolen)
+            game_message = obj.interaction_text[0]
+            action_log.append((f"{obj.interaction_text[0]} (-{stolen} руб)", current_time))
+            action_performed = True
+        elif obj.name == "Бандит":
+            stolen = random.randint(5, 30)
+            player_money = max(0, player_money - stolen)
+            game_message = obj.interaction_text[0]
+            action_log.append((f"{obj.interaction_text[0]} (-{stolen} руб)", current_time))
+            action_performed = True
+        elif obj.name == "Карманник":
+            stolen = random.randint(5, 30)
+            player_money = max(0, player_money - stolen)
+            game_message = obj.interaction_text[0]
+            action_log.append((f"{obj.interaction_text[0]} (-{stolen} руб)", current_time))
+            action_performed = True
             
     elif obj.type == "building":
         if obj.name == "Многоквартирный дом":
@@ -479,11 +512,14 @@ def interact_with_object(obj):
         elif obj.name == "Завод":
             player_money += 25
             player_hp = max(0, player_hp - 5)
+            player_hunger = max(0, player_hunger - 5)
             game_message = obj.interaction_text[0]
             action_log.append((obj.interaction_text[0], current_time))
             action_performed = True
         elif obj.name == "Склад":
             player_money += 10
+            player_hp = max(0, player_hp - 5)
+            player_hunger = max(0, player_hunger - 5)
             game_message = obj.interaction_text[0]
             action_log.append((obj.interaction_text[0], current_time))
             action_performed = True
@@ -512,6 +548,8 @@ def interact_with_object(obj):
                 game_message = obj.interaction_text[1]
         elif obj.name == "Гараж":
             player_money += 18
+            player_hp = max(0, player_hp - 5)
+            player_hunger = max(0, player_hunger - 5)
             game_message = obj.interaction_text[0]
             action_log.append((obj.interaction_text[0], current_time))
             action_performed = True
@@ -519,6 +557,7 @@ def interact_with_object(obj):
             if player_money >= 15:
                 player_money -= 15
                 player_hp = min(100, player_hp + 10)
+                player_hunger = max(0, player_hunger - 5)
                 game_message = obj.interaction_text[0]
                 action_log.append((obj.interaction_text[0], current_time))
                 action_performed = True
