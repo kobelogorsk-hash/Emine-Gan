@@ -12,20 +12,29 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Выживание в городе")
 clock = pygame.time.Clock()
 
-# Цвета
-GREEN = (34, 139, 34)
+# Цвета - приглушённые тёмные тона для фонов, яркие для активностей и людей
+DARK_BG_1 = (45, 45, 48)      # Тёмно-серый для центра
+DARK_BG_2 = (38, 35, 30)      # Тёмно-коричневый для жилого района
+DARK_BG_3 = (30, 30, 35)      # Тёмно-синий для промышленной зоны
+DARK_BG_4 = (25, 40, 30)      # Тёмно-зелёный для парка
+
 GRAY = (128, 128, 128)
 WHITE = (255, 255, 255)
 BLUE = (56, 2, 255)
 RED = (255, 7, 0)
 BLACK = (3, 0, 0)
-YELLOW = (15, 215, 0)
+YELLOW = (255, 215, 0)        # Золотой яркий
 BROWN = (139, 69, 19)
 DARK_GRAY = (64, 64, 64)
 LIGHT_BLUE = (135, 206, 235)
 ORANGE = (255, 165, 0)
-PURPLE = (128, 0, 128)
+PURPLE = (180, 50, 200)       # Яркий фиолетовый
 BEIGE = (245, 245, 220)
+GREEN = (50, 200, 50)         # Яркий зелёный
+CYAN = (0, 255, 255)          # Яркий циан
+PINK = (255, 105, 180)        # Яркий розовый
+LIME = (180, 255, 0)          # Яркий лайм
+GOLD = (255, 215, 0)          # Золотой
 
 # Кулдаун (30 секунд)
 COOLDOWN_SECONDS = 30
@@ -183,16 +192,19 @@ class GameObject:
         self.last_interaction_time = 0  # Время последнего взаимодействия
 
 
-# Локации
+# Локации с приглушёнными тёмными фонами
 locations = [
-    {"name": "Центральный район", "bg_color": GRAY},
-    {"name": "Жилой район", "bg_color": BEIGE},
-    {"name": "Промышленная зона", "bg_color": DARK_GRAY},
-    {"name": "Парковая зона", "bg_color": GREEN},
+    {"name": "Центральный район", "bg_color": DARK_BG_1},
+    {"name": "Жилой район", "bg_color": DARK_BG_2},
+    {"name": "Промышленная зона", "bg_color": DARK_BG_3},
+    {"name": "Парковая зона", "bg_color": DARK_BG_4},
 ]
 
 # Создание объектов на карте
 player = Player()
+
+# Журнал действий для отображения последних событий
+action_log = []
 
 objects = [
     # Центральный район (0)
@@ -204,16 +216,24 @@ objects = [
                ["Прохожий: 'Привет, иди поработай'", "Прохожий занят"]),
     GameObject(500, 450, 30, 40, ORANGE, "person", "Уличный музыкант", 0,
                ["Музыкант поделился мелочью (+5 руб)", "Музыкант сегодня без настроения"]),
+    GameObject(250, 350, 30, 40, CYAN, "person", "Таксист", 0,
+               ["Таксист предлагает работу (+15 руб)", "Таксист уже уехал"]),
+    GameObject(700, 380, 30, 40, PINK, "person", "Турист", 0,
+               ["Турист дал чаевые (+10 руб)", "Турист не говорит по-русски"]),
     
     # Жилой район (1)
     GameObject(100, 200, 120, 100, BEIGE, "building", "Многоквартирный дом", 1,
                ["Вы зашли домой и отдохнули (+10 здоровья)", "Дом закрыт"]),
     GameObject(300, 180, 100, 90, BEIGE, "building", "Кафе", 1,
                ["Вы пообедали в кафе (-30 руб, +25 сытости)", "Кафе закрыто или нет денег"]),
-    GameObject(550, 250, 30, 40, BLUE, "person", "Рабочий", 1,
+    GameObject(550, 250, 30, 40, LIME, "person", "Рабочий", 1,
                ["Рабочий: 'Хорошего дня!'", "Рабочий спешит на работу"]),
     GameObject(650, 200, 110, 95, BLUE, "building", "Офис", 1,
                ["Вы нашли подработку (+15 руб)", "Вакансий нет"]),
+    GameObject(450, 350, 30, 40, GOLD, "person", "Курьер", 1,
+               ["Курьер поделился едой (+10 сытости)", "Курьер опаздывает"]),
+    GameObject(200, 320, 100, 85, ORANGE, "building", "Пекарня", 1,
+               ["Свежий хлеб (+15 сытости, -20 руб)", "Пекарня закрыта"]),
     
     # Промышленная зона (2)
     GameObject(150, 180, 130, 110, DARK_GRAY, "building", "Завод", 2,
@@ -224,16 +244,26 @@ objects = [
                ["Охранник: 'Проходи мимо'", "Охранник проверяет документы"]),
     GameObject(50, 350, 120, 100, PURPLE, "building", "Больница", 2,
                ["Вас подлечили бесплатно (+20 здоровья)", "Больница переполнена"]),
+    GameObject(300, 380, 30, 40, CYAN, "person", "Инженер", 2,
+               ["Инженер заплатил за консультацию (+20 руб)", "Инженер занят"]),
+    GameObject(500, 280, 110, 90, BROWN, "building", "Гараж", 2,
+               ["Подработка механиком (+18 руб)", "Нет заказов"]),
     
     # Парковая зона (3)
     GameObject(50, 150, 200, 180, GREEN, "park", "Городской парк", 3,
                ["Вы отдохнули в парке (+5 здоровья, +5 сытости)", "Парк на ремонте"]),
-    GameObject(350, 200, 30, 40, GREEN, "person", "Спортсмен", 3,
+    GameObject(350, 200, 30, 40, LIME, "person", "Спортсмен", 3,
                ["Спортсмен: 'Занимайся спортом!'", "Спортсмен на тренировке"]),
     GameObject(500, 180, 110, 95, BROWN, "building", "Киоск с едой", 3,
                ["Вы купили хот-дог (-20 руб, +15 сытости)", "Киоск закрыт"]),
     GameObject(650, 300, 30, 40, PURPLE, "person", "Художник", 3,
                ["Художник подарил картину (+10 руб при продаже)", "Художник занят"]),
+    GameObject(250, 280, 30, 40, PINK, "person", "Девушка с собакой", 3,
+               ["Девушка улыбнулась (+5 настроения)", "Собака играет"]),
+    GameObject(450, 320, 100, 80, CYAN, "building", "Аренда велосипедов", 3,
+               ["Прогулка на велосипеде (+10 здоровья, -15 руб)", "Нет велосипедов"]),
+    GameObject(600, 180, 30, 40, YELLOW, "person", "Фотокорреспондент", 3,
+               ["Вас сфотографировали (+5 руб)", "Камера разряжена"]),
 ]
 
 
@@ -241,8 +271,9 @@ def draw_hud():
     """Отрисовка панели состояния (HUD)"""
     pygame.draw.rect(screen, BLACK, (0, 0, WIDTH, 100))
 
-    hp_text = font.render(f"Здоровье: {player_hp}%", True, WHITE)
-    hunger_text = font.render(f"Сытость: {player_hunger}%", True, WHITE)
+    # Проценты сытости и здоровья без десятичных чисел (целые числа)
+    hp_text = font.render(f"Здоровье: {int(player_hp)}%", True, WHITE)
+    hunger_text = font.render(f"Сытость: {int(player_hunger)}%", True, WHITE)
     money_text = font.render(f"Деньги: {player_money} руб.", True, WHITE)
     location_text = font.render(f"Район: {locations[current_location_index]['name']}", True, WHITE)
     msg_text = log_font.render(game_message, True, YELLOW)
@@ -252,6 +283,20 @@ def draw_hud():
     screen.blit(money_text, (200, 20))
     screen.blit(location_text, (200, 50))
     screen.blit(msg_text, (400, 35))
+    
+    # Отрисовка журнала действий
+    draw_action_log()
+
+
+def draw_action_log():
+    """Отрисовка последних действий в стиле популярных симуляторов"""
+    log_y = 120
+    for i, (action_text, timestamp) in enumerate(action_log[-5:]):  # Показываем последние 5 действий
+        alpha = max(50, 255 - (len(action_log) - i) * 40)  # Затухание старых сообщений
+        color = (min(255, alpha + 50), min(255, alpha + 100), min(255, alpha + 50))
+        log_msg = log_font.render(f"> {action_text}", True, color)
+        screen.blit(log_msg, (10, log_y))
+        log_y += 22
 
 
 def check_location_transition():
@@ -278,16 +323,16 @@ def check_location_transition():
 
 
 def interact_with_object(obj):
-    """Взаимодействие с объектом с учетом кулдауна"""
+    """Взаимодействие с объектом с учетом кулдауна (скрыто)"""
     global player_hp, player_hunger, player_money, game_message
     
     current_time = time.time()
     
-    # Проверка кулдауна
+    # Проверка кулдауна - скрыто, без отображения текста
     if current_time - obj.last_interaction_time < COOLDOWN_SECONDS:
-        remaining = int(COOLDOWN_SECONDS - (current_time - obj.last_interaction_time))
-        game_message = f"Подождите {remaining} сек. до следующего взаимодействия"
-        return
+        return  # Просто не выполняем действие, без сообщения
+    
+    action_performed = False
     
     # Обработка взаимодействия в зависимости от типа объекта
     if obj.type == "shop":
@@ -296,7 +341,8 @@ def interact_with_object(obj):
                 player_money -= 100
                 player_hunger = min(100, player_hunger + 20)
                 game_message = obj.interaction_text[0]
-                obj.last_interaction_time = current_time
+                action_log.append((obj.interaction_text[0], current_time))
+                action_performed = True
             else:
                 game_message = obj.interaction_text[1]
                 
@@ -305,68 +351,134 @@ def interact_with_object(obj):
                 player_money -= 50
                 player_hp = min(100, player_hp + 30)
                 game_message = obj.interaction_text[0]
-                obj.last_interaction_time = current_time
+                action_log.append((obj.interaction_text[0], current_time))
+                action_performed = True
             else:
                 game_message = obj.interaction_text[1]
                 
     elif obj.type == "person":
         if obj.name == "Прохожий":
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Уличный музыкант":
             player_money += 5
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Рабочий":
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Охранник":
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Спортсмен":
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Художник":
             player_money += 10
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Таксист":
+            player_money += 15
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Турист":
+            player_money += 10
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Курьер":
+            player_hunger = min(100, player_hunger + 10)
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Инженер":
+            player_money += 20
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Девушка с собакой":
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Фотокорреспондент":
+            player_money += 5
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
             
     elif obj.type == "building":
         if obj.name == "Многоквартирный дом":
             player_hp = min(100, player_hp + 10)
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Кафе":
             if player_money >= 30:
                 player_money -= 30
                 player_hunger = min(100, player_hunger + 25)
                 game_message = obj.interaction_text[0]
-                obj.last_interaction_time = current_time
+                action_log.append((obj.interaction_text[0], current_time))
+                action_performed = True
             else:
                 game_message = obj.interaction_text[1]
         elif obj.name == "Офис":
             player_money += 15
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Завод":
             player_money += 25
             player_hp = max(0, player_hp - 5)
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Склад":
             player_money += 10
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Больница":
             player_hp = min(100, player_hp + 20)
             game_message = obj.interaction_text[0]
-            obj.last_interaction_time = current_time
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
         elif obj.name == "Киоск с едой":
             if player_money >= 20:
                 player_money -= 20
                 player_hunger = min(100, player_hunger + 15)
                 game_message = obj.interaction_text[0]
-                obj.last_interaction_time = current_time
+                action_log.append((obj.interaction_text[0], current_time))
+                action_performed = True
+            else:
+                game_message = obj.interaction_text[1]
+        elif obj.name == "Пекарня":
+            if player_money >= 20:
+                player_money -= 20
+                player_hunger = min(100, player_hunger + 15)
+                game_message = obj.interaction_text[0]
+                action_log.append((obj.interaction_text[0], current_time))
+                action_performed = True
+            else:
+                game_message = obj.interaction_text[1]
+        elif obj.name == "Гараж":
+            player_money += 18
+            game_message = obj.interaction_text[0]
+            action_log.append((obj.interaction_text[0], current_time))
+            action_performed = True
+        elif obj.name == "Аренда велосипедов":
+            if player_money >= 15:
+                player_money -= 15
+                player_hp = min(100, player_hp + 10)
+                game_message = obj.interaction_text[0]
+                action_log.append((obj.interaction_text[0], current_time))
+                action_performed = True
             else:
                 game_message = obj.interaction_text[1]
                 
@@ -374,6 +486,11 @@ def interact_with_object(obj):
         player_hp = min(100, player_hp + 5)
         player_hunger = min(100, player_hunger + 5)
         game_message = obj.interaction_text[0]
+        action_log.append((obj.interaction_text[0], current_time))
+        action_performed = True
+    
+    # Обновляем время последнего взаимодействия только если действие произошло
+    if action_performed:
         obj.last_interaction_time = current_time
 
 
