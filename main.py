@@ -6,10 +6,10 @@ import time
 pygame.init()
 pygame.font.init()
 
-# Настройки окна
+# Настройки окна - вид сверху
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Выживание в городе")
+pygame.display.set_caption("Выживание в городе - Вид сверху")
 clock = pygame.time.Clock()
 
 # Цвета - приглушённые тёмные тона для фонов, яркие для активностей и людей
@@ -20,7 +20,7 @@ DARK_BG_4 = (25, 40, 30)      # Тёмно-зелёный для парка
 
 GRAY = (128, 128, 128)
 WHITE = (255, 255, 255)
-BLUE = (56, 2, 255)
+BLUE = (56, 7, 255)
 RED = (255, 7, 0)
 BLACK = (3, 0, 0)
 YELLOW = (255, 215, 0)        # Золотой яркий
@@ -35,6 +35,10 @@ CYAN = (0, 255, 255)          # Яркий циан
 PINK = (255, 105, 180)        # Яркий розовый
 LIME = (180, 255, 0)          # Яркий лайм
 GOLD = (255, 215, 0)          # Золотой
+ROAD_COLOR = (80, 80, 85)     # Цвет дороги
+SIDEWALK_COLOR = (100, 100, 105)  # Цвет тротуара
+GRASS_COLOR = (34, 139, 34)   # Цвет травы для парков
+WATER_COLOR = (30, 144, 255)  # Цвет воды
 
 # Кулдаун (30 секунд)
 COOLDOWN_SECONDS = 30
@@ -54,129 +58,158 @@ game_message = (
 )
 
 
-# Класс Игрока
+# Класс Игрока - вид сверху
 class Player:
 
     def __init__(self):
-        self.rect = pygame.Rect(400, 300, 30, 30)
+        self.rect = pygame.Rect(400, 300, 24, 24)  # Квадратный игрок для вида сверху
         self.speed = 4
-        self.direction = 1  # 1 = вправо, -1 = влево
+        self.angle = 0  # Направление взгляда для вида сверху
 
     def move(self, dx, dy):
-        if dx != 0:
-            self.direction = dx
+        if dx != 0 or dy != 0:
+            # Вычисляем угол направления движения
+            import math
+            self.angle = math.degrees(math.atan2(-dy, dx))
         self.rect.x += dx * self.speed
         self.rect.y += dy * self.speed
-        # Ограничение движения границами экрана
+        # Ограничение движения границами экрана (теперь по всей площади)
         self.rect.clamp_ip(pygame.Rect(0, 100, WIDTH, HEIGHT - 100))
 
 
-def draw_person(x, y, width, height, color, direction=1):
-    """Рисует силуэт человека из простых элементов"""
-    # Голова
-    head_radius = width // 4
-    head_center = (x + width // 2, y + head_radius)
-    pygame.draw.circle(screen, color, head_center, head_radius)
+def draw_person_topdown(x, y, width, height, color, angle=0):
+    """Рисует человека сверху - круг с направлением"""
+    center_x = x + width // 2
+    center_y = y + height // 2
     
-    # Тело
-    body_rect = pygame.Rect(x + width // 4, y + head_radius * 2, width // 2, height // 2)
-    pygame.draw.rect(screen, color, body_rect)
+    # Тело (круг)
+    radius = width // 2
+    pygame.draw.circle(screen, color, (center_x, center_y), radius)
     
-    # Ноги
-    leg_width = width // 6
-    leg_height = height // 3
-    left_leg = pygame.Rect(x + width // 6, y + height - leg_height, leg_width, leg_height)
-    right_leg = pygame.Rect(x + width // 2 + width // 12, y + height - leg_height, leg_width, leg_height)
-    pygame.draw.rect(screen, color, left_leg)
-    pygame.draw.rect(screen, color, right_leg)
+    # Направление взгляда (линия или небольшой круг спереди)
+    import math
+    rad = math.radians(angle)
+    front_x = center_x + int(radius * 0.7 * math.cos(rad))
+    front_y = center_y - int(radius * 0.7 * math.sin(rad))
+    pygame.draw.circle(screen, WHITE, (front_x, front_y), radius // 3)
     
-    # Руки
-    arm_width = width // 8
-    arm_height = height // 4
-    arm_offset = direction * 5
-    left_arm = pygame.Rect(x + width // 8 - arm_offset, y + head_radius * 2 + 5, arm_width, arm_height)
-    right_arm = pygame.Rect(x + width // 2 + width // 8 + arm_offset, y + head_radius * 2 + 5, arm_width, arm_height)
-    pygame.draw.rect(screen, color, left_arm)
-    pygame.draw.rect(screen, color, right_arm)
+    # Плечи/руки (эллипс)
+    shoulder_rect = pygame.Rect(x + 4, y + 8, width - 8, height - 10)
+    pygame.draw.ellipse(screen, color, shoulder_rect)
 
 
-def draw_building(x, y, width, height, color, building_type="shop"):
-    """Рисует здание из простых элементов"""
+def draw_building_topdown(x, y, width, height, color, building_type="shop"):
+    """Рисует здание сверху - прямоугольник с крышей"""
     # Основное здание
-    pygame.draw.rect(screen, color, (x, y + height // 4, width, height * 3 // 4))
+    pygame.draw.rect(screen, color, (x, y, width, height))
     
-    # Крыша
-    roof_points = [(x - 10, y + height // 4), (x + width // 2, y), (x + width + 10, y + height // 4)]
-    pygame.draw.polygon(screen, DARK_GRAY, roof_points)
+    # Крыша сверху (контур)
+    pygame.draw.rect(screen, DARK_GRAY, (x, y, width, height), 3)
     
-    # Дверь
-    door_width = width // 4
-    door_height = height // 3
+    # Дверь снизу здания
+    door_width = width // 3
+    door_height = 10
     door_x = x + width // 2 - door_width // 2
     door_y = y + height - door_height
     pygame.draw.rect(screen, BROWN, (door_x, door_y, door_width, door_height))
     
     # Окна
-    window_size = width // 6
+    window_size = width // 5
     window_color = LIGHT_BLUE if building_type == "shop" else ORANGE
     
-    # Левое окно
-    pygame.draw.rect(screen, window_color, (x + width // 8, y + height // 2, window_size, window_size))
-    pygame.draw.rect(screen, BLACK, (x + width // 8, y + height // 2, window_size, window_size), 2)
+    # Четыре окна по углам
+    pygame.draw.rect(screen, window_color, (x + 8, y + 8, window_size, window_size))
+    pygame.draw.rect(screen, BLACK, (x + 8, y + 8, window_size, window_size), 2)
     
-    # Правое окно
-    pygame.draw.rect(screen, window_color, (x + width - width // 8 - window_size, y + height // 2, window_size, window_size))
-    pygame.draw.rect(screen, BLACK, (x + width - width // 8 - window_size, y + height // 2, window_size, window_size), 2)
+    pygame.draw.rect(screen, window_color, (x + width - 8 - window_size, y + 8, window_size, window_size))
+    pygame.draw.rect(screen, BLACK, (x + width - 8 - window_size, y + 8, window_size, window_size), 2)
+    
+    pygame.draw.rect(screen, window_color, (x + 8, y + height - 8 - window_size, window_size, window_size))
+    pygame.draw.rect(screen, BLACK, (x + 8, y + height - 8 - window_size, window_size, window_size), 2)
+    
+    pygame.draw.rect(screen, window_color, (x + width - 8 - window_size, y + height - 8 - window_size, window_size, window_size))
+    pygame.draw.rect(screen, BLACK, (x + width - 8 - window_size, y + height - 8 - window_size, window_size, window_size), 2)
     
     # Вывеска для магазина
     if building_type == "shop":
-        sign_rect = pygame.Rect(x + width // 4, y + height // 4 - 15, width // 2, 20)
+        sign_rect = pygame.Rect(x + width // 4, y - 10, width // 2, 8)
         pygame.draw.rect(screen, RED, sign_rect)
         pygame.draw.rect(screen, WHITE, sign_rect, 2)
 
 
-def draw_house(x, y, width, height):
-    """Рисует жилой дом"""
-    draw_building(x, y, width, height, BEIGE, "house")
-    # Добавим дымоход
-    chimney_width = width // 8
-    chimney_height = height // 4
-    pygame.draw.rect(screen, DARK_GRAY, (x + width * 3 // 4, y - chimney_height // 2, chimney_width, chimney_height))
+def draw_house_topdown(x, y, width, height):
+    """Рисует жилой дом сверху"""
+    draw_building_topdown(x, y, width, height, BEIGE, "house")
+    # Добавим дымоход сверху
+    chimney_width = width // 6
+    chimney_height = height // 6
+    pygame.draw.rect(screen, DARK_GRAY, (x + width * 3 // 4 - chimney_width // 2, y - chimney_height, chimney_width, chimney_height))
 
 
-def draw_police_station(x, y, width, height):
-    """Рисует полицейский участок"""
-    draw_building(x, y, width, height, BLUE, "police")
+def draw_police_station_topdown(x, y, width, height):
+    """Рисует полицейский участок сверху"""
+    draw_building_topdown(x, y, width, height, BLUE, "police")
     # Сирена на крыше
     siren_x = x + width // 2
-    siren_y = y - 10
-    pygame.draw.circle(screen, RED, (siren_x - 10, siren_y), 8)
-    pygame.draw.circle(screen, BLUE, (siren_x + 10, siren_y), 8)
+    siren_y = y + height // 2
+    pygame.draw.circle(screen, RED, (siren_x - 8, siren_y), 6)
+    pygame.draw.circle(screen, BLUE, (siren_x + 8, siren_y), 6)
 
 
-def draw_park(x, y, width, height):
-    """Рисует парк с деревьями"""
-    # Трава
-    pygame.draw.rect(screen, GREEN, (x, y, width, height))
+def draw_park_topdown(x, y, width, height):
+    """Рисует парк сверху с деревьями и травой"""
+    # Трава - основа парка
+    pygame.draw.rect(screen, GRASS_COLOR, (x, y, width, height))
     
-    # Деревья
+    # Деревья сверху (круги с центром)
     tree_positions = [
-        (x + width // 4, y + height // 2),
-        (x + width // 2, y + height // 3),
-        (x + width * 3 // 4, y + height // 2),
+        (x + width // 4, y + height // 3),
+        (x + width // 2, y + height // 2),
+        (x + width * 3 // 4, y + height * 2 // 3),
+        (x + width // 3, y + height * 3 // 4),
+        (x + width * 2 // 3, y + height // 4),
     ]
     
     for tx, ty in tree_positions:
-        # Ствол
-        trunk_width = width // 15
-        trunk_height = height // 4
-        pygame.draw.rect(screen, BROWN, (tx - trunk_width // 2, ty, trunk_width, trunk_height))
-        
-        # Крона
-        crown_radius = width // 8
-        pygame.draw.circle(screen, GREEN, (tx, ty - trunk_height // 2), crown_radius)
-        pygame.draw.circle(screen, GREEN, (tx - crown_radius // 2, ty - trunk_height), crown_radius // 1.5)
-        pygame.draw.circle(screen, GREEN, (tx + crown_radius // 2, ty - trunk_height), crown_radius // 1.5)
+        # Крона дерева (круг)
+        crown_radius = min(width, height) // 10
+        pygame.draw.circle(screen, GREEN, (tx, ty), crown_radius)
+        # Центр дерева (темнее)
+        pygame.draw.circle(screen, (30, 150, 30), (tx, ty), crown_radius // 2)
+
+
+def draw_road(x, y, width, height, road_type="horizontal"):
+    """Рисует дорогу"""
+    pygame.draw.rect(screen, ROAD_COLOR, (x, y, width, height))
+    
+    # Разметка дороги
+    if road_type == "horizontal":
+        line_y = y + height // 2
+        for i in range(0, width, 40):
+            pygame.draw.rect(screen, WHITE, (x + i, line_y - 2, 20, 4))
+    else:  # vertical
+        line_x = x + width // 2
+        for i in range(0, height, 40):
+            pygame.draw.rect(screen, WHITE, (line_x - 2, y + i, 4, 20))
+
+
+def draw_sidewalk(x, y, width, height):
+    """Рисует тротуар"""
+    pygame.draw.rect(screen, SIDEWALK_COLOR, (x, y, width, height))
+    # Узор плитки
+    tile_size = 20
+    for row in range(0, height, tile_size):
+        for col in range(0, width, tile_size):
+            pygame.draw.rect(screen, GRAY, (x + col, y + row, tile_size - 2, tile_size - 2), 1)
+
+
+def draw_water(x, y, width, height):
+    """Рисует воду (озеро, река)"""
+    pygame.draw.rect(screen, WATER_COLOR, (x, y, width, height))
+    # Волны
+    for i in range(0, width, 30):
+        for j in range(0, height, 30):
+            pygame.draw.arc(screen, (100, 180, 255), (x + i, y + j, 25, 25), 0, 3.14, 2)
 
 
 # Класс Объектов (Магазины, Люди, Здания)
@@ -192,12 +225,22 @@ class GameObject:
         self.last_interaction_time = 0  # Время последнего взаимодействия
 
 
-# Локации с приглушёнными тёмными фонами
+# Локации с приглушёнными тёмными фонами и поверхностями
 locations = [
-    {"name": "Центральный район", "bg_color": DARK_BG_1},
-    {"name": "Жилой район", "bg_color": DARK_BG_2},
-    {"name": "Промышленная зона", "bg_color": DARK_BG_3},
-    {"name": "Парковая зона", "bg_color": DARK_BG_4},
+    {"name": "Центральный район", "bg_color": DARK_BG_1, 
+     "roads": [(0, 280, WIDTH, 60)],  # Горизонтальная дорога по центру
+     "sidewalks": [(0, 270, WIDTH, 10), (0, 340, WIDTH, 10)]},  # Тротуары
+    {"name": "Жилой район", "bg_color": DARK_BG_2,
+     "roads": [(150, 0, 50, HEIGHT), (600, 0, 50, HEIGHT)],  # Вертикальные дороги
+     "sidewalks": [(140, 0, 10, HEIGHT), (200, 0, 10, HEIGHT), (590, 0, 10, HEIGHT), (650, 0, 10, HEIGHT)]},
+    {"name": "Промышленная зона", "bg_color": DARK_BG_3,
+     "roads": [(0, 300, WIDTH, 80)],  # Широкая дорога
+     "sidewalks": [(0, 290, WIDTH, 10), (0, 380, WIDTH, 10)],
+     "water": [(50, 450, 150, 80)]},  # Водоём
+    {"name": "Парковая зона", "bg_color": DARK_BG_4,
+     "roads": [(0, 0, 40, HEIGHT), (WIDTH-40, 0, 40, HEIGHT)],  # Дороги по краям
+     "sidewalks": [(40, 0, 20, HEIGHT), (WIDTH-60, 0, 20, HEIGHT)],
+     "grass_areas": [(100, 150, 200, 300), (400, 200, 250, 250)]},  # Зоны травы
 ]
 
 # Создание объектов на карте
@@ -529,17 +572,40 @@ while running:
     # Проверка перехода между локациями
     check_location_transition()
 
+    # Отрисовка поверхностей локации (дороги, тротуары, вода, трава)
+    current_loc = locations[current_location_index]
+    
+    # Рисуем дороги
+    if "roads" in current_loc:
+        for road in current_loc["roads"]:
+            draw_road(road[0], road[1], road[2], road[3])
+    
+    # Рисуем тротуары
+    if "sidewalks" in current_loc:
+        for sidewalk in current_loc["sidewalks"]:
+            draw_sidewalk(sidewalk[0], sidewalk[1], sidewalk[2], sidewalk[3])
+    
+    # Рисуем воду
+    if "water" in current_loc:
+        for water in current_loc["water"]:
+            draw_water(water[0], water[1], water[2], water[3])
+    
+    # Рисуем зоны травы
+    if "grass_areas" in current_loc:
+        for grass in current_loc["grass_areas"]:
+            pygame.draw.rect(screen, GRASS_COLOR, (grass[0], grass[1], grass[2], grass[3]))
+
     # Отрисовка и обработка объектов города
     for obj in objects:
         # Рисуем только объекты текущей локации
         if obj.location == current_location_index:
             # Отрисовка в зависимости от типа объекта
             if obj.type == "person":
-                draw_person(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height, obj.color, player.direction)
+                draw_person_topdown(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height, obj.color, player.angle)
             elif obj.type == "park":
-                draw_park(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height)
+                draw_park_topdown(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height)
             else:  # shop, building
-                draw_building(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height, obj.color, obj.type)
+                draw_building_topdown(obj.rect.x, obj.rect.y, obj.rect.width, obj.rect.height, obj.color, obj.type)
             
             # Подписи над объектами
             name_tag = log_font.render(obj.name, True, WHITE)
@@ -563,7 +629,7 @@ while running:
             game_message = "Новая игра началась!"
 
     # Отрисовка игрока (силуэт человека)
-    draw_person(player.rect.x, player.rect.y, player.rect.width, player.rect.height, BLUE, player.direction)
+    draw_person_topdown(player.rect.x, player.rect.y, player.rect.width, player.rect.height, BLUE, player.angle)
 
     # Отрисовка интерфейса
     draw_hud()
